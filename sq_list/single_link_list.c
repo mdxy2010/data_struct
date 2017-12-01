@@ -8,7 +8,7 @@ struct sg_link_list {
 	int data;
 };
 
-int _link_list_inserted_tail(struct sg_link_list *list, int data)
+int link_list_inserted_tail_step(struct sg_link_list *list, int data)
 {
 	struct sg_link_list *new_node = NULL;
 	struct sg_link_list *tail = NULL;
@@ -31,28 +31,29 @@ int _link_list_inserted_tail(struct sg_link_list *list, int data)
 	return 0;
 }
 
+#if 0
 int link_list_inserted_tail(struct sg_link_list *list, int data)
 {
-	struct sg_link_list *new_node = NULL;
-	struct sg_link_list *tail = NULL;
-	struct sg_link_list *head = NULL;
+	struct sg_link_list *p, *q;
 
-	head = tail = list;
+	q = list;
 
-	new_node = (struct sg_link_list*)malloc(sizeof(struct sg_link_list));
-	if (new_node == NULL) {
-		printf("malloc new node failed\n");
-		return -1;
-	}
+	p = (struct sg_link_list*)malloc(sizeof(struct sg_link_list));
+	p->data = data;
+#if 0
+	p->next = q->next;
+	q->next = p;
+#endif
+#if 1
+	q->next = p;
+	q = p;
+#endif
 
-	new_node->data = data;
-	tail->next = new_node;
-	new_node->next = NULL;
-	tail = new_node;
-	list = head;
+	p->next = NULL;
 
 	return 0;
 }
+#endif
 
 int link_list_inserted_head(struct sg_link_list *list, int data)
 {
@@ -69,17 +70,46 @@ int link_list_inserted_head(struct sg_link_list *list, int data)
 
 	return 0;
 }
+int link_list_inserted_midle(struct sg_link_list *list, int pos, int data)
+{
+	int len;
+	int j;
+	struct sg_link_list *p;
+	struct sg_link_list *q;
 
-void dump_list(struct sg_link_list *list)
+	len = get_link_list_length(list);
+	if (pos < 0 || pos > len) {
+		printf("pos not exsit in link list\n");
+		return -1;
+	}
+
+	q = (struct sg_link_list*)malloc(sizeof(struct sg_link_list));
+	p = list->next;
+	j = 1;
+
+	while (p && j < pos) {
+		p = p->next;
+		j++;
+	}
+
+	q->data = data;
+	q->next = p->next;
+	p->next = q;
+
+	return 0;
+}
+
+void dump_list(struct sg_link_list *head)
 {
 	struct sg_link_list *p;
 
-	if (list == NULL)
+	if (head == NULL)
 		return;
-	p = list->next;
+
+	p = head->next;
 
 	while (p) {
-		printf("0x%x ", p->data);
+		printf("link list node 0x%08x: %x\n", p, p->data);
 		p = p->next;
 	}
 	printf("\n");
@@ -105,24 +135,6 @@ int get_link_list_length(struct sg_link_list *list)
 	return length;
 }
 
-void dump_list_tail(struct sg_link_list *list)
-{
-	struct sg_link_list *p;
-	int len;
-
-	len = get_link_list_length(list);
-	p = p - sizeof(struct sg_link_list) * len;
-	if (list == NULL)
-		return;
-	p = list->next;
-
-	while (p) {
-		printf("0x%x ", p->data);
-		p = p->next;
-	}
-	printf("\n");
-}
-
 int create_link_list_head(struct sg_link_list **head)
 {
 	*head = (struct sg_link_list *)malloc(sizeof(struct sg_link_list));
@@ -134,7 +146,7 @@ int create_link_list_head(struct sg_link_list **head)
 	return 0;
 }
 
-int create_link_list_table(struct sg_link_list *list, int length)
+int create_link_list_table_head(struct sg_link_list *head, int length)
 {
 	int i;
 	struct sg_link_list *p;
@@ -147,35 +159,48 @@ int create_link_list_table(struct sg_link_list *list, int length)
 	for (i = 0; i < length; i++) {
 		p = (struct sg_link_list*)malloc(sizeof(struct sg_link_list));
 		p->data = i;
-		p->next = list->next;
-		list->next = p;
+		p->next = head->next;
+		head->next = p; //the head->next point the new node forever
 	}
+
+	return 0;
+}
+
+int create_link_list_table_tail(struct sg_link_list *head, int length)
+{
+	int i;
+	struct sg_link_list *p;
+
+	if (length == 0) {
+		printf("link list table length must > 0\n");
+		return -1;
+	}
+
+	for (i = 0; i < length; i++) {
+		p = (struct sg_link_list*)malloc(sizeof(struct sg_link_list));
+		p->data = i;
+		head->next = p; //the head->next  point the first node forever
+		head = p;
+	}
+
+	p->next = NULL;
 	return 0;
 }
 
 int main(int argc, const char *argv[])
 {
 	int i;
-	struct sg_link_list *list;
+	struct sg_link_list *head;
 	int len;
-	
-	create_link_list_head(&list);
+	create_link_list_head(&head);
+	create_link_list_table_tail(head, 10);
 
-	for (i = 0; i < 10; i++) {
-		link_list_inserted_tail(list, i);
-	}
-	/*
-	create_link_list_table(list, 10);
+	link_list_inserted_midle(head, 5, 0x11);
+	link_list_inserted_midle(head, 6, 0x22);
 
-	link_list_inserted_head(list, 0xaa);
-	link_list_inserted_head(list, 0x3a);
-	link_list_inserted_head(list, 0x7a);
-	*/
-	//link_list_inserted_tail(list, 0x88);
-	//link_list_inserted_tail(list, 0x66);
-	len = get_link_list_length(list);
+	len = get_link_list_length(head);
 	printf("the link list length = %d\n", len);
 
-	dump_list(list);
+	dump_list(head);
 	return 0;
 }
