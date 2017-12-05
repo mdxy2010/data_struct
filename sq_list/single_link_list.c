@@ -55,7 +55,7 @@ int link_list_inserted_tail(struct sg_link_list *list, int data)
 }
 #endif
 
-int link_list_inserted_head(struct sg_link_list *list, int data)
+int link_list_inserted_head(struct sg_link_list *head, int data)
 {
 	struct sg_link_list *new_node = NULL;
 
@@ -65,26 +65,26 @@ int link_list_inserted_head(struct sg_link_list *list, int data)
 		return -1;
 	}
 	new_node->data = data;
-	new_node->next = list->next;
-	list->next = new_node;
+	new_node->next = head->next;
+	head->next = new_node;
 
 	return 0;
 }
-int link_list_inserted_midle(struct sg_link_list *list, int pos, int data)
+int link_list_inserted_midle(struct sg_link_list *head, int pos, int data)
 {
 	int len;
 	int j;
 	struct sg_link_list *p;
 	struct sg_link_list *q;
 
-	len = get_link_list_length(list);
+	len = get_link_list_length(head);
 	if (pos < 0 || pos > len) {
 		printf("pos not exsit in link list\n");
 		return -1;
 	}
 
 	q = (struct sg_link_list*)malloc(sizeof(struct sg_link_list));
-	p = list->next;
+	p = head->next;
 	j = 1;
 
 	while (p && j < pos) {
@@ -105,6 +105,10 @@ void dump_list(struct sg_link_list *head)
 
 	if (head == NULL)
 		return;
+	if (head->next == NULL) {
+		printf("The link list is NULL\n");
+		return;
+	}
 
 	p = head->next;
 
@@ -115,17 +119,17 @@ void dump_list(struct sg_link_list *head)
 	printf("\n");
 }
 
-int get_link_list_length(struct sg_link_list *list)
+int get_link_list_length(struct sg_link_list *head)
 {
 	int length = 0;
 	struct sg_link_list *p;
 	
-	if (list == NULL) {
+	if (head == NULL) {
 		printf("link list is not exsit\n");
 		return length;
 	}
 
-	p = list->next;
+	p = head->next;
 
 	while(p) {
 		length++;
@@ -166,6 +170,97 @@ int create_link_list_table_head(struct sg_link_list *head, int length)
 	return 0;
 }
 
+int link_list_deleted_by_pos(struct sg_link_list *head, int pos, int *deleted_val)
+{
+	int ret = 0, j, len;
+	struct sg_link_list *p = NULL;
+	struct sg_link_list *q = NULL;
+
+	if (head == NULL || deleted_val == NULL) {
+		ret = -1;
+		return ret;
+	}
+
+	len = get_link_list_length(head);
+
+	if (pos > len || pos < 0) {
+		ret = -1;
+		printf("delete position overflow........\n");
+		return ret;
+	}
+
+	j = 1;
+	p = head->next;
+
+	// find the prev node of the pos node
+	while (p && j < pos) {
+		p = p->next;
+		j++;
+	}
+	printf("p = 0x%08x\n", p);
+
+	if (!p || j > pos) {
+		ret = -1;
+		printf("deleted node do not exsit\n");
+		return ret;
+	}
+
+	q = p->next; //get the delete node
+	*deleted_val = p->next->data; //get the delete node data
+	p->next = q->next; //p->next = p->next->next
+
+	free(q);
+
+	return ret;
+
+}
+
+int link_list_free(struct sg_link_list *head)
+{
+
+	struct sg_link_list *p = NULL;
+	struct sg_link_list *q = NULL;
+
+	p = head->next;
+
+	while(p) {
+		q = p->next;
+		free(p);
+		printf("free link list node:0x%08x\n", p);
+		p = q;
+	}
+	head->next = NULL;
+	return 0;
+}
+
+int link_list_get_element(struct sg_link_list *head, int element)
+{
+	int k, j;
+	struct sg_link_list *p = NULL;
+
+	if (head == NULL)
+		return -1;
+
+	j = 1;
+	p = head->next;
+
+	while(p) {
+		if (p->data == element)
+			break;
+		p = p->next;
+		j++;
+	}
+
+	if (!p) {
+		printf("the element do not exsit in link list\n");
+		return -1;
+	}
+	k = j;
+
+	printf("the element: 0x%x is at %d node\n", element, k);
+	return 0;
+}
+
 int create_link_list_table_tail(struct sg_link_list *head, int length)
 {
 	int i;
@@ -191,15 +286,20 @@ int main(int argc, const char *argv[])
 {
 	int i;
 	struct sg_link_list *head;
-	int len;
+	int len, del_val;
 	create_link_list_head(&head);
 	create_link_list_table_tail(head, 10);
 
 	link_list_inserted_midle(head, 5, 0x11);
 	link_list_inserted_midle(head, 6, 0x22);
-
+	//link_list_deleted_by_pos(head, 5, &del_val);
+	//printf("del_val = %d\n", del_val);
+	//link_list_get_element(head, 0x11);
 	len = get_link_list_length(head);
-	printf("the link list length = %d\n", len);
+	printf("before free the link list length = %d\n", len);
+	link_list_free(head);
+	len = get_link_list_length(head);
+	printf("after free the link list length = %d\n", len);
 
 	dump_list(head);
 	return 0;
