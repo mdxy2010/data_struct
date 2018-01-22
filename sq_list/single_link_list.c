@@ -302,5 +302,6 @@ int main(int argc, const char *argv[])
 	printf("after free the link list length = %d\n", len);
 
 	dump_list(head);
+	free(head);
 	return 0;
 }
